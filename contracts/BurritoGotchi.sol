@@ -21,10 +21,10 @@ contract BurritoGotchi is ERC721 {
 
     mapping(uint256 => Pet) private _pets;
 
-    constructor() ERC721("VirtualPet", "VPET") {}
+    constructor() ERC721("Burrito Gotchi", "BBGOT") {}
 
     function mintPet(string memory petName) external returns (uint256) {
-        require(_tokenIds.current() < MAX_PETS, "Maximum number of pets reached");
+        // require(_tokenIds.current() < MAX_PETS, "Maximum number of pets reached");
         _tokenIds.increment();
         uint256 newPetId = _tokenIds.current();
         _safeMint(msg.sender, newPetId);
