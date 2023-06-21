@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.20+commit.a1b79de6"
+		"version": "0.8.2+commit.661d1103"
 	},
 	"language": "Solidity",
 	"output": {
@@ -453,23 +453,6 @@
 			}
 		],
 		"devdoc": {
-			"events": {
-				"Approval(address,address,uint256)": {
-					"details": "Emitted when `owner` enables `approved` to manage the `tokenId` token."
-				},
-				"ApprovalForAll(address,address,bool)": {
-					"details": "Emitted when `owner` enables or disables (`approved`) `operator` to manage all of its assets."
-				},
-				"BatchMetadataUpdate(uint256,uint256)": {
-					"details": "This event emits when the metadata of a range of tokens is changed. So that the third-party platforms such as NFT market could timely update the images and related attributes of the NFTs."
-				},
-				"MetadataUpdate(uint256)": {
-					"details": "This event emits when the metadata of a token is changed. So that the third-party platforms such as NFT market could timely update the images and related attributes of the NFT."
-				},
-				"Transfer(address,address,uint256)": {
-					"details": "Emitted when `tokenId` token is transferred from `from` to `to`."
-				}
-			},
 			"kind": "dev",
 			"methods": {
 				"approve(address,uint256)": {
@@ -524,7 +507,7 @@
 		"compilationTarget": {
 			"contracts/BurritoGotchi2.sol": "VirtualPet"
 		},
-		"evmVersion": "shanghai",
+		"evmVersion": "istanbul",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -590,6 +573,14 @@
 			"urls": [
 				"bzz-raw://6c9f260258c2be0e3b75f8ca285872c4bfa3a8fc97fdc2e62366c78abf22b54f",
 				"dweb:/ipfs/QmTg1DMNwCDj8NVi6i1noqx7cxuRdPP4VyW4fzDkKAKmH2"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol": {
+			"keccak256": "0xd1556954440b31c97a142c6ba07d5cade45f96fafd52091d33a14ebe365aecbf",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://26fef835622b46a5ba08b3ef6b46a22e94b5f285d0f0fb66b703bd30217d2c34",
+				"dweb:/ipfs/QmZ548qdwfL1qF7aXz3xh1GCdTiST81kGGuKRqVUfYmPZR"
 			]
 		},
 		"@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol": {
@@ -673,11 +664,11 @@
 			]
 		},
 		"contracts/BurritoGotchi2.sol": {
-			"keccak256": "0x74e365f3a9d7ae0dbd3e62493be131ed0dabef5d33ede5e6a565e7abcc97d931",
+			"keccak256": "0xa7c65079761d118a8497ea0f014272c07ab0fc0ab35248092d8340aa0e5bbbbb",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://8baacac94f3f1228c452a660b44ac42ec991f4a8e73d4d94e1a3a54e9d0d6dc0",
-				"dweb:/ipfs/Qmd1N9w3Mqez6vVcntsWC4SEXsQDYxvjPioF963FRjXqmk"
+				"bzz-raw://36a6af377f4bcbd40ee98055afc890423a0680ddefc58b671bd2fb96e862ecee",
+				"dweb:/ipfs/QmfW8N7zsbA9P9wfDseT8BRoDTQBFjfBCfH1W53t76Xzh5"
 			]
 		}
 	},
