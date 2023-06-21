@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 
-contract VirtualPet is ERC721URIStorage, IERC2981 {
+contract VirtualPet is ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
     uint256 private nonce = 0;
-    uint256 private constant ROYALTY_PERCENTAGE = 5;
 
     enum Activity { Idle, Playing, Eating }
 
@@ -24,7 +23,7 @@ contract VirtualPet is ERC721URIStorage, IERC2981 {
 
     mapping(uint256 => Pet) private _pets;
 
-    constructor() ERC721("Burrito Gotchi", "BBGOT") {}
+    constructor() ERC721("VirtualPet", "VPET") {}
 
     function mintPet(string memory petName) external returns (uint256) {
         _tokenIds.increment();
@@ -84,14 +83,6 @@ contract VirtualPet is ERC721URIStorage, IERC2981 {
         return string(abi.encodePacked("data:application/json;base64,", bytes(Base64.encode(bytes(json)))));
     }
 
-    function royaltyInfo(uint256 tokenId, uint256 value) external view override returns (address, uint256) {
-        uint256 royaltyAmount = (value * ROYALTY_PERCENTAGE) / 100;
-        return (ownerOf(), royaltyAmount);
-    }
-
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, IERC2981) returns (bool) {
-        return super.supportsInterface(interfaceId) || interfaceId == type(IERC2981).interfaceId;
-    }
 
     function random() private returns (uint256) {
         nonce++;
@@ -128,3 +119,4 @@ contract VirtualPet is ERC721URIStorage, IERC2981 {
         return string(buffer);
     }
 }
+
