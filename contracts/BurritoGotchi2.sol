@@ -1,38 +1,72 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
+import "hardhat/console.sol";
 
-contract BurritoBattleVP is ERC721URIStorage, ERC721Enumerable {
+contract BurritoBattleVP is ERC721URIStorage {
+    event MensajeImpreso(string mensaje);
+
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
     uint256 private nonce = 0;
 
-    enum Activity { Idle, Playing, Eating }
+    enum Activity {
+        Idle,
+        Playing,
+        Eating
+    }
 
     struct Pet {
+        address owner;
+        string image;
         string name;
         uint256 happiness;
         uint256 hunger;
         Activity currentActivity;
     }
 
+    struct PetInfo {
+        uint256 tokenId;
+        string image;
+        string name;
+        uint256 happiness;
+        uint256 hunger;
+        string activity;
+    }
+
+    struct TokenURI {
+        string tokenURI;
+        string image;
+    }
+
     mapping(uint256 => Pet) private _pets;
 
-    constructor() ERC721("Burrito Battle Virtual Pet", "BBPET") {}
+    constructor() ERC721("Burrito battle Virtual Pet", "BBVP") {}
 
     function mintPet(string memory petName) external returns (uint256) {
         _tokenIds.increment();
         uint256 newPetId = _tokenIds.current();
         _safeMint(msg.sender, newPetId);
-        _pets[newPetId] = Pet(petName, 50, 50, Activity.Idle);
 
-        string memory tokenURI = generateTokenURI(petName);
-        _setTokenURI(newPetId, tokenURI);
+        TokenURI memory tokenURI = generateTokenURI(petName);
+
+        emit MensajeImpreso(tokenURI.image);
+
+        _pets[newPetId] = Pet(
+            msg.sender,
+            tokenURI.image,
+            petName,
+            50,
+            50,
+            Activity.Idle
+        );
+
+        _setTokenURI(newPetId, tokenURI.tokenURI);
 
         return newPetId;
     }
@@ -53,14 +87,67 @@ contract BurritoBattleVP is ERC721URIStorage, ERC721Enumerable {
         pet.hunger += 10;
     }
 
-    function checkStatus(uint256 petId) external view returns (string memory, uint256, uint256, string memory) {
+    function checkStatus(uint256 petId)
+        internal
+        view
+        returns (
+            string memory,
+            string memory,
+            uint256,
+            uint256,
+            string memory
+        )
+    {
         require(_exists(petId), "Pet does not exist");
         Pet storage pet = _pets[petId];
         string memory activity = getActivityString(pet.currentActivity);
-        return (pet.name, pet.happiness, pet.hunger, activity);
+        return (pet.image, pet.name, pet.happiness, pet.hunger, activity);
     }
 
-    function generateTokenURI(string memory petName) private returns (string memory) {
+ 
+    function getTokenInfoById(uint256 tokenId)
+        external
+        view
+        returns (PetInfo memory)
+    {
+        require(_exists(tokenId), "Token does not exist");
+        require(ownerOf(tokenId) == msg.sender, "Not the owner of the token");
+
+        (
+            string memory image,
+            string memory name,
+            uint256 happiness,
+            uint256 hunger,
+            string memory activity
+        ) = checkStatus(tokenId);
+
+        return
+            convertToPetInfo(tokenId, image, name, happiness, hunger, activity);
+    }
+
+    function convertToPetInfo(
+        uint256 tokenId,
+        string memory image,
+        string memory name,
+        uint256 happiness,
+        uint256 hunger,
+        string memory activity
+    ) private pure returns (PetInfo memory) {
+        return
+            PetInfo({
+                tokenId: tokenId,
+                image: image,
+                name: name,
+                happiness: happiness,
+                hunger: hunger,
+                activity: activity
+            });
+    }
+
+    function generateTokenURI(string memory petName)
+        private
+        returns (TokenURI memory)
+    {
         uint256 randomImageIndex = random() % 3; // 3 different images
 
         string[3] memory images = [
@@ -71,25 +158,48 @@ contract BurritoBattleVP is ERC721URIStorage, ERC721Enumerable {
 
         string memory json = string(
             abi.encodePacked(
-                '{"name": "', petName,
-                '", "description": "A virtual pet NFT", "image": "', images[randomImageIndex],
-                '", "attributes": [{"trait_type": "Happiness", "value": "', toString(_pets[_tokenIds.current()].happiness),
-                '"}, {"trait_type": "Hunger", "value": "', toString(_pets[_tokenIds.current()].hunger),
-                '"}, {"trait_type": "Activity", "value": "', getActivityString(_pets[_tokenIds.current()].currentActivity),
+                '{"name": "',
+                petName,
+                '", "description": "A virtual pet NFT", "image": "',
+                images[randomImageIndex],
+                '", "attributes": [{"trait_type": "Happiness", "value": "',
+                toString(_pets[_tokenIds.current()].happiness),
+                '"}, {"trait_type": "Hunger", "value": "',
+                toString(_pets[_tokenIds.current()].hunger),
+                '"}, {"trait_type": "Activity", "value": "',
+                getActivityString(_pets[_tokenIds.current()].currentActivity),
                 '"}]}'
             )
         );
 
-        return string(abi.encodePacked("data:application/json;base64,", bytes(Base64.encode(bytes(json)))));
-    }
+        string memory token = string(
+            abi.encodePacked(
+                "data:application/json;base64,",
+                bytes(Base64.encode(bytes(json)))
+            )
+        );
 
+        TokenURI memory tokenURI = TokenURI(
+            token,
+            string(images[randomImageIndex])
+        );
+
+        return tokenURI;
+    }
 
     function random() private returns (uint256) {
         nonce++;
-        return uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, nonce)));
+        return
+            uint256(
+                keccak256(abi.encodePacked(block.timestamp, msg.sender, nonce))
+            );
     }
 
-    function getActivityString(Activity activity) private pure returns (string memory) {
+    function getActivityString(Activity activity)
+        private
+        pure
+        returns (string memory)
+    {
         if (activity == Activity.Playing) {
             return "Playing";
         } else if (activity == Activity.Eating) {
@@ -118,41 +228,4 @@ contract BurritoBattleVP is ERC721URIStorage, ERC721Enumerable {
         }
         return string(buffer);
     }
-
-
-
- // The following functions are overrides required by Solidity.
-
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        override(ERC721, ERC721Enumerable)
-    {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
-    }
-
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        return super.tokenURI(tokenId);
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override( ERC721Enumerable, ERC721URIStorage)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
-    }
-
- 
- 
 }
-
