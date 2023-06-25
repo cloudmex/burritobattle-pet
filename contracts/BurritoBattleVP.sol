@@ -12,8 +12,6 @@ contract BurritoBattleVP is ERC721URIStorage {
     Counters.Counter private _tokenIds;
 
     uint256 private nonce = 0;
-    address public paymentToken;         // Address of the token being used as payment (USDT)
-    uint256 public nftPrice;     // Price of each token (1 USDT)
 
     enum Activity {
         Idle,
@@ -55,23 +53,9 @@ contract BurritoBattleVP is ERC721URIStorage {
 
     mapping(uint256 => Pet) private _pets;
 
-    constructor(address _paymentToken,uint256 _nftPrice) 
-        ERC721("Burrito Battle Virtual Pet", "BBVP") 
-    {
-        paymentToken = _paymentToken;
-        nftPrice = _nftPrice;
+    constructor() ERC721("Burrito Battle Virtual Pet", "BBVP") {}
 
-    }
-
-
-    function mintPet(string memory petName) external payable returns (uint256) {
-        //Is pending to verify the token being payed
-        require(msg.value >= nftPrice, "Insufficient payment");
-        // Perform token transfer to the buyer
-        //IERC20(paymentToken).transfer(treasuryAddress, nftPrice);  
-        //maybe not required if the contract is holding the money
-        //Just is required a 
-
+    function mintPet(string memory petName) external returns (uint256) {
         _tokenIds.increment();
         uint256 newPetId = _tokenIds.current();
         _safeMint(msg.sender, newPetId);
@@ -118,7 +102,8 @@ contract BurritoBattleVP is ERC721URIStorage {
         //pet.currentActivity = Activity.Playing;
         pet.lastPlay = block.timestamp;
         pet.happiness == 50 ? 50 : pet.happiness += 10;
-        pet.hunger += 10;
+        pet.hunger == 50 ? 50 : pet.hunger += 10;
+
     }
 
     function eat(uint256 tokenId) external {
@@ -134,7 +119,7 @@ contract BurritoBattleVP is ERC721URIStorage {
         pet.lastMeal = block.timestamp;
         pet.hunger == 0 ? 0 : pet.hunger -= 10;
         pet.happiness == 50 ? 50 : pet.happiness += 10;
-        pet.sleep += 10;
+        pet.sleep == 50 ? 50 : pet.sleep += 10;
     }
 
     function doze(uint256 tokenId) external {
@@ -157,7 +142,7 @@ contract BurritoBattleVP is ERC721URIStorage {
         //pet.currentActivity = Activity.Sleeping;
         pet.lastSleep = block.timestamp;
         pet.sleep == 0 ? 0 : pet.sleep -= 10;
-        pet.happiness == 50 ? 50 : pet.happiness += 10;
+        pet.happiness == 0 ? 0 : pet.happiness -= 10;
     }
 
     function getMintedTokens() external view returns (uint256) {

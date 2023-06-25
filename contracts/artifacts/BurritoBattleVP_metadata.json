@@ -6,18 +6,7 @@
 	"output": {
 		"abi": [
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_paymentToken",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_nftPrice",
-						"type": "uint256"
-					}
-				],
+				"inputs": [],
 				"stateMutability": "nonpayable",
 				"type": "constructor"
 			},
@@ -334,7 +323,7 @@
 						"type": "uint256"
 					}
 				],
-				"stateMutability": "payable",
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -351,19 +340,6 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
-				"name": "nftPrice",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
 				"inputs": [
 					{
 						"internalType": "uint256",
@@ -372,19 +348,6 @@
 					}
 				],
 				"name": "ownerOf",
-				"outputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "paymentToken",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -773,11 +736,11 @@
 			]
 		},
 		"contracts/BurritoBattleVP.sol": {
-			"keccak256": "0x039d014c621d72ae82cdc8f4f775d8c92bde327ade1812d2ed617ac3e37dc17d",
+			"keccak256": "0x072b64a61435b84bc0f50887260c66d3e44c416988f3bbec0344ce666fc217ac",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a53b0838a4915942b5153a9169d14c8c400df659df2243c51ce2f66f573d0595",
-				"dweb:/ipfs/QmR9mEd7XLviXpxihztBiUjZ6fe83ThrGLQcorSiq2wtEb"
+				"bzz-raw://3e77a87241e5297915bc25953be836d99f6a1a4ee6112062fac5dc598fe77c61",
+				"dweb:/ipfs/QmZVjXwEuTATGmtymzfZatgwgZkiw9v5GfEyyvJQcSrtHp"
 			]
 		},
 		"hardhat/console.sol": {
