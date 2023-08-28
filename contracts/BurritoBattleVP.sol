@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "hardhat/console.sol";
 
-contract BurritoBattleVP is ERC721URIStorage {
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+
+contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967UpgradeUpgradeable, UUPSUpgradeable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    uint256 private nonce = 0;
-
+    uint256 private nonce;
+    address onlyowner;
     enum Activity {
         Idle,
         Playing,
@@ -53,13 +57,28 @@ contract BurritoBattleVP is ERC721URIStorage {
 
     mapping(uint256 => Pet) private _pets;
 
-    constructor() ERC721("Burrito Battle Virtual Pet", "BBVP") {}
+    modifier onlyOwner(){
+        require(msg.sender== onlyowner, "you can not update the contract");
+        _;
+    }
+  
+
+
+     function initialize() initializer public {
+           nonce = 0;
+          
+        onlyowner=msg.sender;
+        __ERC721_init("Burrito Battle Virtual Pet", "BBVP");
+        __UUPSUpgradeable_init();
+       //  current_version="0.0.2";
+    }
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function mintPet(string memory petName) external returns (uint256) {
         _tokenIds.increment();
         uint256 newPetId = _tokenIds.current();
         _safeMint(msg.sender, newPetId);
-
+        
         TokenURI memory tokenURI = generateTokenURI(petName);
         uint256 currentTime = block.timestamp;
 
@@ -338,4 +357,11 @@ contract BurritoBattleVP is ERC721URIStorage {
         }
         return string(buffer);
     }
+    
+    string  current_version;
+
+
+     /*function  getCurrentVersion() public view returns (string memory) {
+         return current_version;
+     }*/
 }
