@@ -14,9 +14,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967UpgradeUpgradeable, UUPSUpgradeable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
-
     uint256 private nonce;
     address onlyowner;
+    address payable treasury;
+    uint mint_cost;
+
     enum Activity {
         Idle,
         Playing,
@@ -39,6 +41,7 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
 
     struct PetInfo {
         uint256 tokenId;
+        pet_status status;
         string image;
         string name;
         uint256 happiness;
@@ -54,27 +57,40 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
         string tokenURI;
         string image;
     }
-
+    enum pet_status
+    {
+        NotExist,
+        NotOwner,
+        Owned
+    }
     mapping(uint256 => Pet) private _pets;
-
+   
     modifier onlyOwner(){
         require(msg.sender== onlyowner, "you can not update the contract");
         _;
     }
-  
+    modifier mintPayed()  { 
+        string memory message= string.concat("you must pay exactly", "-", toString(mint_cost) ); 
+       require(msg.value== mint_cost,message );
+       _;
+    }
 
-
+    //this funtion must be commented after the first deploy Ex at V2. 
      function initialize() initializer public {
-           nonce = 0;
-          
+        nonce = 0;  
         onlyowner=msg.sender;
+        treasury=payable(msg.sender);
+        //0.00923ethes around 5usd
+        mint_cost=2930000000000000;
         __ERC721_init("Burrito Battle Virtual Pet", "BBVP");
-        __UUPSUpgradeable_init();
-       //  current_version="0.0.2";
+       
+        
+       
     }
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function mintPet(string memory petName) external returns (uint256) {
+    function mintPet(string memory petName) mintPayed payable external returns (uint256) {
+        treasury.transfer(msg.value);
         _tokenIds.increment();
         uint256 newPetId = _tokenIds.current();
         _safeMint(msg.sender, newPetId);
@@ -100,12 +116,13 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
         return newPetId;
     }
 
-    function play(uint256 tokenId) external {
+    function play(uint256 tokenId)  external {
         require(_exists(tokenId), "Pet does not exist");
         require(
             ownerOf(tokenId) == msg.sender,
             "You are not the owner of the token"
         );
+        
 
         Pet storage pet = _pets[tokenId];
         require(pet.currentActivity == Activity.Idle, "Pet is busy");
@@ -211,27 +228,55 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
         view
         returns (PetInfo memory)
     {
-        require(_exists(tokenId), "Token does not exist");
-        require(
-            ownerOf(tokenId) == msg.sender,
-            "You are not the owner of the token"
-        );
+       
+        //if the token doesnt exist return void
+        if( !_exists(tokenId)){
+            pet_status status =pet_status.NotExist;
+            string memory image="";
+            string memory name;
+            uint256 happiness=0;
+            uint256 hunger=0;
+            uint256 sleep=0;
+            string memory activity="";
+            bool isHungry=false;
+            bool isSleepy=false;
+            bool isBored=false;
+        
 
-        (
-            string memory image,
-            string memory name,
-            uint256 happiness,
-            uint256 hunger,
-            uint256 sleep,
-            string memory activity,
-            bool isHungry,
-            bool isSleepy,
-            bool isBored
-        ) = checkStatus(tokenId);
+            return
+                convertToPetInfo(
+                    tokenId,
+                    status,
+                    image,
+                    name,
+                    happiness,
+                    hunger,
+                    sleep,
+                    activity,
+                    isHungry,
+                    isSleepy,
+                    isBored
+                );
+        }
+        //if the msg.sender is not the owner return void
+        if( ownerOf(tokenId) != msg.sender ) {
+        
+            pet_status status =pet_status.NotOwner;
+            string memory image="";
+            string memory name;
+            uint256 happiness=0;
+            uint256 hunger=0;
+            uint256 sleep=0;
+            string memory activity="";
+            bool isHungry=false;
+            bool isSleepy=false;
+            bool isBored=false;
+        
 
-        return
+            return
             convertToPetInfo(
                 tokenId,
+                status,
                 image,
                 name,
                 happiness,
@@ -242,10 +287,45 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
                 isSleepy,
                 isBored
             );
+        }else{
+
+        
+        //the token exist and the msg.sender is correctly
+        (
+           
+            string memory image,
+            string memory name,
+            uint256 happiness,
+            uint256 hunger,
+            uint256 sleep,
+            string memory activity,
+            bool isHungry,
+            bool isSleepy,
+            bool isBored
+        ) = checkStatus(tokenId) ;
+        pet_status status =pet_status.Owned;
+        return
+            convertToPetInfo(
+                
+                tokenId,
+                status,
+                image,
+                name,
+                happiness,
+                hunger,
+                sleep,
+                activity,
+                isHungry,
+                isSleepy,
+                isBored
+            );
+        }
+       
     }
 
     function convertToPetInfo(
         uint256 tokenId,
+        pet_status status,
         string memory image,
         string memory name,
         uint256 happiness,
@@ -259,6 +339,7 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
         return
             PetInfo({
                 tokenId: tokenId,
+                status:status,
                 image: image,
                 name: name,
                 happiness: happiness,
@@ -358,10 +439,20 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
         return string(buffer);
     }
     
-    string  current_version;
+   function setTreasury(address payable newTreasury)public onlyOwner returns(string memory){
+        treasury=newTreasury;
+        return "Treasury chenged";
+   }
 
+    function getTreasury()public view returns(address){
+        return treasury;
+   }
+   function setMintAmount(uint newAmount)public onlyOwner returns(string memory){
+        mint_cost=newAmount;
+        return "mint cost chgnged";
+   }
 
-     /*function  getCurrentVersion() public view returns (string memory) {
-         return current_version;
-     }*/
+    
 }
+
+     
