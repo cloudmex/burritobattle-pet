@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "hardhat/console.sol";
-
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol";
@@ -115,17 +115,17 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
 
         return newPetId;
     }
-    function mintPet_owner(string memory petName) onlyOwner  external returns (uint256) {
+    function mintPet_owner(string memory petName, address new_burrito_owner) onlyOwner  external returns (uint256) {
        
         _tokenIds.increment();
         uint256 newPetId = _tokenIds.current();
         _safeMint(msg.sender, newPetId);
-        
+        safeTransferFrom(msg.sender,new_burrito_owner, newPetId);
         TokenURI memory tokenURI = generateTokenURI(petName);
         uint256 currentTime = block.timestamp;
 
         _pets[newPetId] = Pet(
-            msg.sender,
+            new_burrito_owner,
             tokenURI.image,
             petName,
             50,
