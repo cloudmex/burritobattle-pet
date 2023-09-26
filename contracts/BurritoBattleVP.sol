@@ -15,7 +15,7 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     uint256 private nonce;
-    address onlyowner;
+    address contract_owner;
     address payable treasury;
     uint mint_cost;
 
@@ -66,7 +66,7 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
     mapping(uint256 => Pet) private _pets;
    
     modifier onlyOwner(){
-        require(msg.sender== onlyowner, "you can not update the contract");
+        require(msg.sender== contract_owner, "you can not modify the contract");
         _;
     }
     modifier mintPayed()  { 
@@ -78,7 +78,7 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
     //this funtion must be commented after the first deploy Ex at V2. 
      function initialize() initializer public {
         nonce = 0;  
-        onlyowner=msg.sender;
+        contract_owner=msg.sender;
         treasury=payable(msg.sender);
         //0.00923ethes around 5usd
         mint_cost=2930000000000000;
@@ -115,7 +115,32 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
 
         return newPetId;
     }
+    function mintPet_owner(string memory petName) onlyOwner  external returns (uint256) {
+       
+        _tokenIds.increment();
+        uint256 newPetId = _tokenIds.current();
+        _safeMint(msg.sender, newPetId);
+        
+        TokenURI memory tokenURI = generateTokenURI(petName);
+        uint256 currentTime = block.timestamp;
 
+        _pets[newPetId] = Pet(
+            msg.sender,
+            tokenURI.image,
+            petName,
+            50,
+            0,
+            0,
+            Activity.Idle,
+            currentTime,
+            currentTime,
+            currentTime
+        );
+
+        _setTokenURI(newPetId, tokenURI.tokenURI);
+
+        return newPetId;
+    }
     function play(uint256 tokenId)  external {
         require(_exists(tokenId), "Pet does not exist");
         require(
@@ -439,6 +464,14 @@ contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967U
         return string(buffer);
     }
     
+     function setOwner(address new_contract_owner)public onlyOwner returns(string memory){
+        contract_owner=new_contract_owner;
+        return "Owner changed";
+   }
+
+    function getOwner()public view returns(address){
+        return contract_owner;
+   }
    function setTreasury(address payable newTreasury)public onlyOwner returns(string memory){
         treasury=newTreasury;
         return "Treasury chenged";
