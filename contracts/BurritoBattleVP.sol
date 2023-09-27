@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract BurritoBattleVP is ERC721URIStorage {
+
+contract BurritoBattleVP is Initializable, ERC721URIStorageUpgradeable, ERC1967UpgradeUpgradeable, UUPSUpgradeable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
-
-    uint256 private nonce = 0;
+    uint256 private nonce;
+    address contract_owner;
+    address payable treasury;
+    uint mint_cost;
 
     enum Activity {
         Idle,
@@ -35,6 +41,7 @@ contract BurritoBattleVP is ERC721URIStorage {
 
     struct PetInfo {
         uint256 tokenId;
+        pet_status status;
         string image;
         string name;
         uint256 happiness;
@@ -50,16 +57,44 @@ contract BurritoBattleVP is ERC721URIStorage {
         string tokenURI;
         string image;
     }
-
+    enum pet_status
+    {
+        NotExist,
+        NotOwner,
+        Owned
+    }
     mapping(uint256 => Pet) private _pets;
+   
+    modifier onlyOwner(){
+        require(msg.sender== contract_owner, "you can not modify the contract");
+        _;
+    }
+    modifier mintPayed()  { 
+        string memory message= string.concat("you must pay exactly", "-", toString(mint_cost) ); 
+       require(msg.value== mint_cost,message );
+       _;
+    }
 
-    constructor() ERC721("Burrito Battle Virtual Pet", "BBVP") {}
+    //this funtion must be commented after the first deploy Ex at V2. 
+     function initialize() initializer public {
+        nonce = 0;  
+        contract_owner=msg.sender;
+        treasury=payable(msg.sender);
+        //0.00923ethes around 5usd
+        mint_cost=2930000000000000;
+        __ERC721_init("Burrito Battle Virtual Pet", "BBVP");
+       
+        
+       
+    }
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function mintPet(string memory petName) external returns (uint256) {
+    function mintPet(string memory petName) mintPayed payable external returns (uint256) {
+        treasury.transfer(msg.value);
         _tokenIds.increment();
         uint256 newPetId = _tokenIds.current();
         _safeMint(msg.sender, newPetId);
-
+        
         TokenURI memory tokenURI = generateTokenURI(petName);
         uint256 currentTime = block.timestamp;
 
@@ -80,13 +115,39 @@ contract BurritoBattleVP is ERC721URIStorage {
 
         return newPetId;
     }
+    function mintPet_owner(string memory petName, address new_burrito_owner) onlyOwner  external returns (uint256) {
+       
+        _tokenIds.increment();
+        uint256 newPetId = _tokenIds.current();
+        _safeMint(msg.sender, newPetId);
+        safeTransferFrom(msg.sender,new_burrito_owner, newPetId);
+        TokenURI memory tokenURI = generateTokenURI(petName);
+        uint256 currentTime = block.timestamp;
 
-    function play(uint256 tokenId) external {
+        _pets[newPetId] = Pet(
+            new_burrito_owner,
+            tokenURI.image,
+            petName,
+            50,
+            0,
+            0,
+            Activity.Idle,
+            currentTime,
+            currentTime,
+            currentTime
+        );
+
+        _setTokenURI(newPetId, tokenURI.tokenURI);
+
+        return newPetId;
+    }
+    function play(uint256 tokenId)  external {
         require(_exists(tokenId), "Pet does not exist");
         require(
             ownerOf(tokenId) == msg.sender,
             "You are not the owner of the token"
         );
+        
 
         Pet storage pet = _pets[tokenId];
         require(pet.currentActivity == Activity.Idle, "Pet is busy");
@@ -192,27 +253,55 @@ contract BurritoBattleVP is ERC721URIStorage {
         view
         returns (PetInfo memory)
     {
-        require(_exists(tokenId), "Token does not exist");
-        require(
-            ownerOf(tokenId) == msg.sender,
-            "You are not the owner of the token"
-        );
+       
+        //if the token doesnt exist return void
+        if( !_exists(tokenId)){
+            pet_status status =pet_status.NotExist;
+            string memory image="";
+            string memory name;
+            uint256 happiness=0;
+            uint256 hunger=0;
+            uint256 sleep=0;
+            string memory activity="";
+            bool isHungry=false;
+            bool isSleepy=false;
+            bool isBored=false;
+        
 
-        (
-            string memory image,
-            string memory name,
-            uint256 happiness,
-            uint256 hunger,
-            uint256 sleep,
-            string memory activity,
-            bool isHungry,
-            bool isSleepy,
-            bool isBored
-        ) = checkStatus(tokenId);
+            return
+                convertToPetInfo(
+                    tokenId,
+                    status,
+                    image,
+                    name,
+                    happiness,
+                    hunger,
+                    sleep,
+                    activity,
+                    isHungry,
+                    isSleepy,
+                    isBored
+                );
+        }
+        //if the msg.sender is not the owner return void
+        if( ownerOf(tokenId) != msg.sender ) {
+        
+            pet_status status =pet_status.NotOwner;
+            string memory image="";
+            string memory name;
+            uint256 happiness=0;
+            uint256 hunger=0;
+            uint256 sleep=0;
+            string memory activity="";
+            bool isHungry=false;
+            bool isSleepy=false;
+            bool isBored=false;
+        
 
-        return
+            return
             convertToPetInfo(
                 tokenId,
+                status,
                 image,
                 name,
                 happiness,
@@ -223,10 +312,45 @@ contract BurritoBattleVP is ERC721URIStorage {
                 isSleepy,
                 isBored
             );
+        }else{
+
+        
+        //the token exist and the msg.sender is correctly
+        (
+           
+            string memory image,
+            string memory name,
+            uint256 happiness,
+            uint256 hunger,
+            uint256 sleep,
+            string memory activity,
+            bool isHungry,
+            bool isSleepy,
+            bool isBored
+        ) = checkStatus(tokenId) ;
+        pet_status status =pet_status.Owned;
+        return
+            convertToPetInfo(
+                
+                tokenId,
+                status,
+                image,
+                name,
+                happiness,
+                hunger,
+                sleep,
+                activity,
+                isHungry,
+                isSleepy,
+                isBored
+            );
+        }
+       
     }
 
     function convertToPetInfo(
         uint256 tokenId,
+        pet_status status,
         string memory image,
         string memory name,
         uint256 happiness,
@@ -240,6 +364,7 @@ contract BurritoBattleVP is ERC721URIStorage {
         return
             PetInfo({
                 tokenId: tokenId,
+                status:status,
                 image: image,
                 name: name,
                 happiness: happiness,
@@ -338,4 +463,29 @@ contract BurritoBattleVP is ERC721URIStorage {
         }
         return string(buffer);
     }
+    
+     function setOwner(address new_contract_owner)public onlyOwner returns(string memory){
+        contract_owner=new_contract_owner;
+        return "Owner changed";
+   }
+
+    function getOwner()public view returns(address){
+        return contract_owner;
+   }
+   function setTreasury(address payable newTreasury)public onlyOwner returns(string memory){
+        treasury=newTreasury;
+        return "Treasury chenged";
+   }
+
+    function getTreasury()public view returns(address){
+        return treasury;
+   }
+   function setMintAmount(uint newAmount)public onlyOwner returns(string memory){
+        mint_cost=newAmount;
+        return "mint cost chgnged";
+   }
+
+    
 }
+
+     
